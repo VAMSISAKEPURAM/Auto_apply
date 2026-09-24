@@ -1,0 +1,64 @@
+# CANDIDATE RESUME & PROFILE
+
+NAME: SAKEPURAM VAMSI
+Contact: +91-7794048137 | sakepuramvamsi@gmail.com | github.com/VAMSISAKEPURAM
+Location: Bengaluru, KA, India
+Total Experience: 2.7 Years
+Target Roles: GenAI Engineer, LLM Engineer, Data Scientist, Machine Learning Engineer, Python AI Developer
+
+PROFESSIONAL SUMMARY:
+GenAI Engineer and Data Scientist with 2.7 years of experience developing Python-based AI/ML applications and LLM-powered solutions. Hands-on experience building RAG pipelines using LangChain, OpenAI APIs, embedding models, and Pinecone vector databases. Skilled in prompt engineering, machine learning, FastAPI REST APIs, SQL, and model evaluation. Experienced in developing predictive models, integrating AI solutions, and delivering production-oriented data applications.
+
+TECHNICAL SKILLS:
+- Programming & Querying: Python, SQL
+- Generative AI & LLMs: Generative AI, LLMs, Prompt Engineering, RAG (Retrieval-Augmented Generation), LangChain, OpenAI API, Hugging Face, Transformers, Vector Databases (Pinecone), AI Agents, Chatbots
+- Machine Learning & AI: Scikit-learn, TensorFlow, XGBoost, Predictive Modelling, Descriptive Analytics, Model Building, Model Evaluation, Model Deployment, Model Validation, CNN, OpenCV, SHAP Explainability
+- Data Analysis & Statistics: Pandas, NumPy, EDA, Statistical Analysis, Feature Engineering, Data Cleansing, Data Validation, Statistics, Probability
+- Backend & APIs: Python, FastAPI, REST APIs, JSON, API Integration, Microservices
+- Visualization & Reporting: Power BI, Dashboard Development, Data Visualization, Technical Documentation
+- Deployment & Tools: Git, GitHub, Model Deployment, MLOps, Cloud Platforms
+- Core Computer Science: Data Structures, Algorithms
+
+PROFESSIONAL EXPERIENCE:
+1. Quicknify Software Technologies Private Limited — Data Scientist (GenAI & ML)
+   Duration: Sep 2024 – Sep 2026 (Bengaluru, KA)
+   • Developed a generative AI-powered personalization engine using GPT-4 and embedding models, implementing a RAG pipeline with a Pinecone vector database to deliver product recommendations at an 88% relevance score.
+   • Built LangChain-based semantic search chains for customer preference analysis from unstructured feedback, and applied prompt engineering with few-shot learning to automate marketing content generation.
+   • Engineered embedding-based similarity search for lookalike customer segmentation, and ran transformer-based NLP sentiment analysis to uncover key drivers of satisfaction and churn.
+   • Built an end-to-end churn prediction pipeline using XGBoost and ensemble methods (94% accuracy), engineering 50+ features from transaction, demographic, and behavioral data.
+   • Optimized model performance via Bayesian hyperparameter tuning and cross-validation; used SHAP analysis to identify top churn drivers, driving an 18% lift in retention in a pilot campaign.
+   • Implemented a model monitoring pipeline with drift detection, and delivered churn-risk dashboards supporting data-driven retention campaigns.
+
+2. AI/ML Labs — Data Scientist Intern
+   Duration: Mar 2024 – Aug 2024
+   • Performed data collection, preprocessing, EDA, and statistical analysis across transactional and demographic datasets using Pandas and NumPy, ensuring data accuracy for downstream reporting.
+   • Engineered features and built predictive machine learning models, applying statistical validation techniques to improve model reliability and generalization.
+   • Built and exposed ML model endpoints via FastAPI REST APIs, enabling low-latency predictions and data delivery for 50,000+ end users.
+   • Applied SHAP-based explainability to identify top statistical feature drivers, communicated findings to non-technical stakeholders, and conducted A/B testing to validate model performance improvements.
+
+KEY PROJECTS:
+1. Customer Insights & Personalization Engine (GenAI) (Sep 2025 – Jul 2026)
+   • Built a generative AI-powered recommendation system utilizing LLMs (GPT-4) and embedding models for customer insights.
+   • Implemented a RAG (Retrieval-Augmented Generation) pipeline with Pinecone vector database to provide personalized product recommendations with an 88% relevance score.
+   • Created LangChain chains for semantic product search and customer preference analysis from unstructured feedback data.
+   • Developed automated marketing content generation for customer segments using prompt engineering and few-shot learning techniques.
+   • Designed embedding-based similarity search to identify lookalike customer segments for targeted campaigns.
+   • Analyzed customer feedback at scale using NLP sentiment analysis with transformers, uncovering key drivers of satisfaction and churn.
+
+2. Customer Churn Prediction & Retention Model (Machine Learning) (Sep 2024 – Aug 2025)
+   • Developed an end-to-end machine learning pipeline predicting customer churn with 94% accuracy using XGBoost and ensemble methods.
+   • Engineered 50+ features from transaction history, demographics, and behavioral data through exploratory data analysis and domain expertise.
+   • Performed hyperparameter tuning via Bayesian optimization and cross-validation to optimize model generalization across diverse customer segments.
+   • Created SHAP-based feature importance analysis identifying top 5 churn drivers: purchase frequency, average order value, customer support interactions, time since last purchase, and category diversity.
+   • Delivered actionable retention strategies to the marketing team with churn risk segmentation; pilot campaign achieved an 18% improvement in retention rates.
+   • Implemented a model monitoring pipeline with drift detection for continuous performance tracking in production.
+
+EDUCATION:
+- B.Sc. Mathematics & Computer Science — CGPA: 9.10 (2021 – 2024)
+  Sri Venkateswara University
+
+PREFERENCES & AVAILABILITY:
+- Current Location: Bengaluru, KA
+- Preferred Job Locations: Bengaluru, Remote, Hyderabad
+- Notice Period: Immediate / 15-30 days
+- Total Experience: 2.7 Years

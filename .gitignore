@@ -1,0 +1,28 @@
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets
+.env
+
+# Session & Cookies (keep local, contains active Naukri credentials)
+data/session.json
+
+# Local databases
+data/*.db
+data/*.db-journal
+
+# Screenshots, logs and generated reports
+screenshots/*.png
+logs/*.log
+reports/*.xlsx
+reports/*.csv
+~$*
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

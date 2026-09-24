@@ -1,0 +1,54 @@
+# Naukri Job Search & Apply Agent Settings
+
+search:
+  # List of primary search roles / keywords aligned with your profile
+  keywords:
+    - "GenAI Engineer"
+    - "LLM Engineer"
+    - "Data Scientist"
+    - "Machine Learning Engineer"
+    - "Python AI Developer"
+  
+  # Preferred locations
+  locations:
+    - "Bengaluru"
+    - "Remote"
+    - "Hyderabad"
+
+  # Experience range in years
+  experience_years: 3
+
+filters:
+  # Minimum fit score (0-100) calculated by Groq LLM against resume.txt to qualify for apply
+  min_relevance_score: 75
+  
+  # Max pages to scrape per keyword/location per run
+  max_pages_per_run: 2
+  
+  # Max total applications attempted per hourly cycle
+  max_applications_per_run: 20
+
+delays:
+  # Anti-bot jitter delays in seconds between pages and interactions
+  min_delay_sec: 3.5
+  max_delay_sec: 7.0
+
+execution:
+  # Set headless: false to view browser actions or true for silent background running
+  headless: false
+  
+  # When dry_run is false, real applications are submitted
+  dry_run: false
+  
+  # When interactive_approval is false, agent runs 100% automated without manual confirmation prompts
+  interactive_approval: false
+
+scheduler:
+  # Interval in hours between automated execution cycles
+  interval_hours: 1
+
+llm:
+  # Groq model for relevance scoring and screening questions
+  model: "qwen/qwen3.8-27b"
+  temperature: 0.1
+  max_retries: 3
