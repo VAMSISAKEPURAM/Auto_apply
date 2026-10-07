@@ -1,6 +1,16 @@
-# Naukri Job Search & Apply Agent Settings
+# Multi-Platform Job Search & Apply Agent Settings
+
+# Enabled hiring platforms (executed in sequence; one platform failing will never stop others)
+sites:
+  - naukri
+  - linkedin
+  - foundit
+  - indeed
+  - shine
+  - instahyre
 
 search:
+
   # List of primary search roles / keywords aligned with your profile
   keywords:
     - "GenAI Engineer"
@@ -15,10 +25,26 @@ search:
     - "Remote"
     - "Hyderabad"
 
-  # Experience range in years
-  experience_years: 3
+  # Experience target in years (1-2 years experience)
+  experience_years: 1
 
 filters:
+  # Experience range in years for scraped jobs (strictly 1 to 2 years)
+  experience_min: 1
+  experience_max: 2
+
+  # Strict experience matching: strictly applies only to roles requiring 1-2 years
+  strict_experience_match: true
+
+  # Also include '0-2 Yrs' entry-level / junior postings
+  include_entry_level_0_to_2: true
+
+  # Strict city / location matching (filters out jobs in non-matching cities)
+  strict_location_match: true
+
+  # Maximum posting age in days (only look for fresh jobs posted within X days)
+  max_job_age_days: 30
+
   # Minimum fit score (0-100) calculated by Groq LLM against resume.txt to qualify for apply
   min_relevance_score: 75
   

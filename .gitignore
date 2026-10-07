@@ -6,12 +6,15 @@ __pycache__/
 # Environment variables & secrets
 .env
 
-# Session & Cookies (keep local, contains active Naukri credentials)
+# Session & Cookies (keep local, contains active platform credentials)
 data/session.json
+data/sessions/
+profiles/
 
 # Local databases
 data/*.db
 data/*.db-journal
+
 
 # Screenshots, logs and generated reports
 screenshots/*.png

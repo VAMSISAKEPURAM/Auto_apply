@@ -5,32 +5,21 @@ from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from .utils import load_settings, normalize_job_url, random_delay, setup_logger
 from .db import upsert_job
+from .filters import build_naukri_search_url, filter_job_card, is_experience_matching, is_location_matching
 
 logger = setup_logger("scraper")
 
 
-def construct_search_url(keyword: str, location: str = "") -> str:
+def construct_search_url(keyword: str, location: str = "", experience_years: int = 1, job_age_days: int = 30) -> str:
     """
-    Construct resilient Naukri search URL.
-    Example: 'Python Developer', 'Bengaluru'
-    -> 'https://www.naukri.com/python-developer-jobs-in-bengaluru'
+    Construct resilient Naukri search URL with experience, city, and freshness filters.
     """
-    kw_slug = re.sub(r"[^a-zA-Z0-9]+", "-", keyword.strip().lower()).strip("-")
-    loc_slug = re.sub(r"[^a-zA-Z0-9]+", "-", location.strip().lower()).strip("-") if location else ""
-    
-    if kw_slug and loc_slug:
-        path = f"{kw_slug}-jobs-in-{loc_slug}"
-    elif kw_slug:
-        path = f"{kw_slug}-jobs"
-    else:
-        path = "jobs"
-        
-    query_params = {"k": keyword}
-    if location:
-        query_params["l"] = location
-
-    query_str = urllib.parse.urlencode(query_params)
-    return f"https://www.naukri.com/{path}?{query_str}"
+    return build_naukri_search_url(
+        keyword=keyword, 
+        location=location, 
+        experience_years=experience_years, 
+        job_age_days=job_age_days
+    )
 
 
 def scroll_page_smoothly(page: Page):
@@ -112,24 +101,41 @@ def extract_job_card(card) -> Dict[str, Any]:
     return job
 
 
-def scrape_search_results(page: Page, keyword: str, location: str, max_pages: int = 2) -> Dict[str, int]:
+def scrape_search_results(
+    page: Page, 
+    keyword: str, 
+    location: str, 
+    settings: Dict[str, Any], 
+    max_pages: int = 2
+) -> Dict[str, int]:
     """
-    Search and scrape jobs across pages for a specific keyword and location.
+    Search and scrape jobs across pages for a specific keyword and location with full filtering.
     """
-    url = construct_search_url(keyword, location)
-    logger.info(f"Navigating to search URL: {url}")
+    search_cfg = settings.get("search", {})
+    filters_cfg = settings.get("filters", {})
+    exp_years = search_cfg.get("experience_years", 1)
+    job_age_days = filters_cfg.get("max_job_age_days", 30)
+
+    url = construct_search_url(
+        keyword=keyword, 
+        location=location, 
+        experience_years=exp_years, 
+        job_age_days=job_age_days
+    )
+    logger.info(f"[Naukri] Navigating to filtered search URL: {url}")
     
     total_found = 0
     total_new = 0
+    total_filtered = 0
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
     except Exception as e:
-        logger.error(f"Failed to load search page: {e}")
-        return {"found": 0, "new": 0}
+        logger.error(f"[Naukri] Failed to load search page: {e}")
+        return {"found": 0, "new": 0, "filtered": 0}
 
     for current_page in range(1, max_pages + 1):
-        logger.info(f"Scraping page {current_page}/{max_pages} for '{keyword}' in '{location}'...")
+        logger.info(f"[Naukri] Scraping page {current_page}/{max_pages} for '{keyword}' in '{location}' (Exp: {exp_years} Yrs)...")
         
         # Human-like delay after page loads
         random_delay(3.5, 6.0)
@@ -149,42 +155,56 @@ def scrape_search_results(page: Page, keyword: str, location: str, max_pages: in
             matched = page.locator(selector).all()
             if matched:
                 cards = matched
-                logger.info(f"Found {len(cards)} job listings using selector '{selector}'")
+                logger.info(f"[Naukri] Found {len(cards)} job listings using selector '{selector}'")
                 break
 
         if not cards:
-            logger.warning(f"No job cards found on page {current_page}. Naukri layout might have changed or CAPTCHA shown.")
+            logger.warning(f"[Naukri] No job cards found on page {current_page}. Naukri layout might have changed or CAPTCHA shown.")
             break
 
         page_new = 0
+        page_filtered = 0
         for card in cards:
             job_info = extract_job_card(card)
-            if job_info.get("url") and job_info.get("title"):
-                total_found += 1
-                is_new = upsert_job(job_info)
-                if is_new:
-                    page_new += 1
-                    total_new += 1
-                    logger.debug(f"Saved new job: {job_info['title']} at {job_info['company']}")
+            if not (job_info.get("url") and job_info.get("title")):
+                continue
 
-        logger.info(f"Page {current_page} complete: {len(cards)} found, {page_new} newly added to DB.")
+            total_found += 1
+            job_info["platform"] = "naukri"
+
+            # Apply Experience, City & Role Filters
+            passed, reason = filter_job_card(job_info, settings)
+            if not passed:
+                page_filtered += 1
+                total_filtered += 1
+                logger.info(f"[Naukri Filter] ✗ Discarded: '{job_info['title']}' at '{job_info['company']}' (Reason: {reason})")
+                continue
+
+            # If passed, store in database
+            is_new = upsert_job(job_info)
+            if is_new:
+                page_new += 1
+                total_new += 1
+                logger.info(f"[Naukri Filter] ✓ Saved: '{job_info['title']}' | {job_info['company']} | {job_info['location']} | Exp: {job_info['experience']}")
+
+        logger.info(f"[Naukri] Page {current_page} complete: {len(cards)} cards seen, {page_new} newly saved, {page_filtered} discarded by filters.")
 
         # Check for next page
         if current_page < max_pages:
             try:
                 next_button = page.locator("a.styles_btn__f8Vaq:has-text('Next'), a:has-text('Next'), .pagination a:has-text('Next')").first
                 if next_button.is_visible(timeout=3000):
-                    logger.info("Clicking Next page button...")
+                    logger.info("[Naukri] Clicking Next page button...")
                     next_button.click()
                     random_delay(3.0, 5.0)
                 else:
-                    logger.info("No next page button visible. End of search results.")
+                    logger.info("[Naukri] No next page button visible. End of search results.")
                     break
             except Exception as e:
-                logger.info(f"Pagination completed or Next button not clickable: {e}")
+                logger.info(f"[Naukri] Pagination completed or Next button not clickable: {e}")
                 break
 
-    return {"found": total_found, "new": total_new}
+    return {"found": total_found, "new": total_new, "filtered": total_filtered}
 
 
 def run_scraper(page: Page, settings: Dict[str, Any]) -> Dict[str, int]:
@@ -194,15 +214,19 @@ def run_scraper(page: Page, settings: Dict[str, Any]) -> Dict[str, int]:
     locations = search_cfg.get("locations", [""])
     max_pages = settings.get("filters", {}).get("max_pages_per_run", 2)
 
-    total_stats = {"found": 0, "new": 0}
+    total_stats = {"found": 0, "new": 0, "filtered": 0}
     
     for kw in keywords:
         for loc in locations:
             logger.info(f"\n--- Searching: Keyword='{kw}', Location='{loc}' ---")
-            stats = scrape_search_results(page, keyword=kw, location=loc, max_pages=max_pages)
+            stats = scrape_search_results(page, keyword=kw, location=loc, settings=settings, max_pages=max_pages)
             total_stats["found"] += stats["found"]
             total_stats["new"] += stats["new"]
+            total_stats["filtered"] += stats.get("filtered", 0)
             random_delay(4.0, 7.0)
 
-    logger.info(f"\nScraping Run Summary: {total_stats['found']} total listings viewed, {total_stats['new']} new jobs stored.")
+    logger.info(
+        f"\n[Naukri] Scraping Run Summary: {total_stats['found']} listings evaluated, "
+        f"{total_stats['new']} new qualified jobs stored, {total_stats['filtered']} filtered out."
+    )
     return total_stats

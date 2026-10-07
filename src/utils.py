@@ -14,11 +14,16 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 DATA_DIR = PROJECT_ROOT / "data"
 LOGS_DIR = PROJECT_ROOT / "logs"
 SCREENSHOTS_DIR = PROJECT_ROOT / "screenshots"
+PROFILES_DIR = PROJECT_ROOT / "profiles"
+SESSIONS_DIR = DATA_DIR / "sessions"
 
 # Ensure runtime directories exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # Load environment variables
 load_dotenv(PROJECT_ROOT / ".env")

@@ -52,9 +52,11 @@ Description/Summary: {job.get('description', 'N/A')}
     system_prompt = (
         "You are an expert technical recruiter and resume evaluator. "
         "Your task is to evaluate the match between a candidate's resume and a job posting on a scale of 0 to 100. "
+        "The candidate strictly targets roles requiring 1 to 2 years of experience (or entry-level/fresher roles up to 2 years). "
+        "If a job strictly requires 3+ or senior years of experience, penalize the score heavily (< 50). "
         "Criteria:\n"
         "1. Required technical skills vs candidate skills (50% weight)\n"
-        "2. Experience level match (30% weight)\n"
+        "2. Experience level match strictly 1-2 years (30% weight)\n"
         "3. Domain/role alignment (20% weight)\n\n"
         "You MUST respond ONLY with a JSON object in this exact schema, with no preamble or additional text:\n"
         "{\n"
@@ -91,14 +93,14 @@ Description/Summary: {job.get('description', 'N/A')}
     return {"score": 50, "justification": "Scoring failed due to API / parsing error"}
 
 
-def run_ranker(limit: int = 50) -> Dict[str, int]:
+def run_ranker(limit: int = 50, platform: Optional[str] = None) -> Dict[str, int]:
     """
     Fetch unscored jobs from DB, evaluate them against resume.txt with Groq,
-    and persist results.
+    and persist results. Supports platform filtering or balanced multi-platform ranking.
     """
     settings = load_settings()
     min_score = settings.get("filters", {}).get("min_relevance_score", 75)
-    model = settings.get("llm", {}).get("model", "llama-3.3-70b-versatile")
+    model = settings.get("llm", {}).get("model", "qwen/qwen3.8-27b")
 
     try:
         resume_text = load_resume()
@@ -112,17 +114,48 @@ def run_ranker(limit: int = 50) -> Dict[str, int]:
         print("GROQ_API_KEY=gsk_...\n")
         return {"processed": 0, "qualified": 0}
 
-    unscored = get_unscored_jobs(limit=limit)
+    unscored = get_unscored_jobs(limit=limit, platform=platform)
     if not unscored:
-        logger.info("No unscored jobs found in database.")
+        logger.info(f"No unscored jobs found in database{' for ' + platform if platform else ''}.")
         return {"processed": 0, "qualified": 0}
 
-    logger.info(f"Ranking {len(unscored)} unscored jobs using Groq ({model})...")
+    target_desc = f" for platform '{platform}'" if platform else " across platforms"
+    logger.info(f"Ranking {len(unscored)} unscored jobs{target_desc} using Groq ({model})...")
     
     stats = {"processed": 0, "qualified": 0, "skipped": 0}
     
     for job in unscored:
-        logger.info(f"Scoring #{job['id']}: '{job['title']}' at '{job['company']}'")
+        p_name = str(job.get("platform") or "naukri").capitalize()
+        logger.info(f"Scoring #{job['id']} [{p_name}]: '{job['title']}' at '{job['company']}'")
+
+        # Strict experience pre-filter: ensure job strictly matches 1-2 years experience rule
+        strict_exp = settings.get("filters", {}).get("strict_experience_match", True)
+        if strict_exp:
+            from .filters import is_experience_matching, extract_experience_from_text
+            target_exp = float(settings.get("search", {}).get("experience_years", 1))
+            min_exp = float(settings.get("filters", {}).get("experience_min", 1))
+            max_exp = float(settings.get("filters", {}).get("experience_max", 2))
+            inc_0_2 = settings.get("filters", {}).get("include_entry_level_0_to_2", True)
+
+            exp_str = job.get("experience", "")
+            if not exp_str or not exp_str.strip():
+                exp_str = extract_experience_from_text(f"{job.get('title', '')} {job.get('description', '')}") or ""
+
+            if not is_experience_matching(
+                exp_str, 
+                target_exp_years=target_exp, 
+                min_tolerance_years=min_exp, 
+                max_tolerance_years=max_exp, 
+                strict_match=True, 
+                include_0_to_2=inc_0_2
+            ):
+                reason = f"Skipped: Experience '{exp_str or 'Unspecified'}' outside strict 1-2 Yrs rule"
+                logger.info(f"-> [SKIPPED - Exp Filter] #{job['id']}: {reason}")
+                update_job_score(job["id"], 0, reason, "skipped")
+                stats["processed"] += 1
+                stats["skipped"] += 1
+                continue
+
         result = score_job_fit(client, resume_text, job, model=model)
         score = result["score"]
         justification = result["justification"]

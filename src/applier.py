@@ -139,14 +139,46 @@ def apply_to_single_job(
     """
     url = job.get("url", "")
     job_id = job.get("id")
+    platform = job.get("platform", "naukri")
     dry_run = settings.get("execution", {}).get("dry_run", True)
     interactive = settings.get("execution", {}).get("interactive_approval", True)
 
     logger.info(f"\n=======================================================")
-    logger.info(f"Opening Job #{job_id}: {job.get('title')} at {job.get('company')}")
+    logger.info(f"Opening Job #{job_id}: {job.get('title')} at {job.get('company')} [{platform.capitalize()}]")
     logger.info(f"URL: {url}")
     logger.info(f"Fit Score: {job.get('relevance_score')}/100")
     logger.info(f"=======================================================")
+
+    # Deduplication check: check if already applied in DB
+    from .db import is_job_already_applied
+    if is_job_already_applied(platform, url):
+        logger.info(f"Job already marked as applied in database: {url}")
+        return "already applied"
+
+    # Strict Experience Enforcement: verify job strictly matches 1-2 years experience rule
+    strict_exp = settings.get("filters", {}).get("strict_experience_match", True)
+    if strict_exp:
+        from .filters import is_experience_matching, extract_experience_from_text
+        target_exp = float(settings.get("search", {}).get("experience_years", 1))
+        min_exp = float(settings.get("filters", {}).get("experience_min", 1))
+        max_exp = float(settings.get("filters", {}).get("experience_max", 2))
+        inc_0_2 = settings.get("filters", {}).get("include_entry_level_0_to_2", True)
+        
+        job_exp = job.get("experience", "")
+        if not job_exp or not job_exp.strip():
+            job_exp = extract_experience_from_text(f"{job.get('title', '')} {job.get('description', '')}") or ""
+
+        if not is_experience_matching(
+            job_exp, 
+            target_exp_years=target_exp, 
+            min_tolerance_years=min_exp, 
+            max_tolerance_years=max_exp, 
+            strict_match=True, 
+            include_0_to_2=inc_0_2
+        ):
+            logger.warning(f"Apply REJECT [Strict Experience Rule]: Job #{job_id} experience '{job_exp}' does not match strict 1-2 Yrs rule.")
+            update_job_apply_status(job_id, "skipped", error_message=f"Experience '{job_exp}' outside strict 1-2 Yrs requirement")
+            return "skipped"
 
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -156,12 +188,12 @@ def apply_to_single_job(
         update_job_apply_status(job_id, "failed", error_message=f"Navigation failed: {e}")
         return "failed"
 
-    # Check if already applied
+    # Check if already applied on site
     already_applied_check = page.locator("text='Already Applied', text='Applied', .already-applied").first
     if already_applied_check.is_visible(timeout=2000):
-        logger.info("Job shows as already applied on Naukri.")
-        update_job_apply_status(job_id, "applied")
-        return "applied"
+        logger.info("Job shows as already applied on the platform.")
+        update_job_apply_status(job_id, "already applied", error_message="Detected already applied tag on platform")
+        return "already applied"
 
     # Identify Apply button
     apply_btn = None
@@ -182,17 +214,18 @@ def apply_to_single_job(
 
     if not apply_btn:
         logger.warning("No visible Apply button found on page.")
-        update_job_apply_status(job_id, "manual_needed", error_message="Apply button not located")
-        return "manual_needed"
+        update_job_apply_status(job_id, "failed", error_message="Apply button not located")
+        return "failed"
 
     btn_text = apply_btn.inner_text().strip()
     logger.info(f"Detected Apply Button: '{btn_text}'")
 
     # Check for external company site redirect
     if "company site" in btn_text.lower() or "external" in btn_text.lower():
-        logger.info("Job requires external application on employer website. Marking as manual_needed.")
-        update_job_apply_status(job_id, "manual_needed", error_message="External employer redirect")
-        return "manual_needed"
+        logger.info("Job requires external application on employer website. Marking as External Redirect.")
+        update_job_apply_status(job_id, "external redirect", error_message="External employer website redirect")
+        return "external redirect"
+
 
     # Click Apply to open native flow / questionnaire
     try:
